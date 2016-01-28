@@ -108,7 +108,7 @@ def index():
         return 'OK'
 
 def execute_action(action):
-    process = subprocess.Popen(action, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(action, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     process.wait()
 
     result = []
