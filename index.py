@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import io
 import os
 import re
@@ -10,6 +12,7 @@ import ipaddress
 import hmac
 from hashlib import sha1
 from flask import Flask, request, abort
+import settings
 
 """
 Conditionally import ProxyFix from werkzeug if the USE_PROXYFIX environment
@@ -31,10 +34,10 @@ app.debug = os.environ.get('DEBUG') == 'true'
 
 # The repos.json file should be readable by the user running the Flask app,
 # and the absolute path should be given by this environment variable.
-REPOS_JSON_PATH = os.environ['FLASK_GITHUB_WEBHOOK_REPOS_JSON']
+REPOS_JSON_PATH = settings.FLASK_GITHUB_WEBHOOK_REPOS_JSON
 
 
-@app.route("/", methods=['GET', 'POST'])
+@app.route("/github_hooks", methods=['GET', 'POST'])
 def index():
     if request.method == 'GET':
         return 'OK'
@@ -62,24 +65,26 @@ def index():
         if request.headers.get('X-GitHub-Event') != "push":
             return json.dumps({'msg': "wrong event type"})
 
-        repos = json.loads(io.open(REPOS_JSON_PATH, 'r').read())
+        repos = REPOS_JSON_PATH
 
         payload = json.loads(request.data)
         repo_meta = {
             'name': payload['repository']['name'],
             'owner': payload['repository']['owner']['name'],
         }
+        repo_name = ''
 
         # Try to match on branch as configured in repos.json
         match = re.match(r"refs/heads/(?P<branch>.*)", payload['ref'])
         if match:
             repo_meta['branch'] = match.groupdict()['branch']
-            repo = repos.get(
-                '{owner}/{name}/branch:{branch}'.format(**repo_meta), None)
+            repo_name = '{owner}/{name}/branch:{branch}'.format(**repo_meta)
+            repo = repos.get(repo_name, None)
 
             # Fallback to plain owner/name lookup
             if not repo:
-                repo = repos.get('{owner}/{name}'.format(**repo_meta), None)
+                repo_name = '{owner}/{name}'.format(**repo_meta)
+                repo = repos.get(repo_name, None)
 
         if repo and repo.get('path', None):
             # Check if POST request signature is valid
@@ -95,9 +100,39 @@ def index():
 
         if repo.get('action', None):
             for action in repo['action']:
-                subp = subprocess.Popen(action, cwd=repo.get('path', '.'))
-                subp.wait()
+                error_code, output = execute_action(action)
+                text = create_text(repo_name, error_code, output)
+                if not notify_slack(text):
+                    return 'Slack error'
+
         return 'OK'
+
+def execute_action(action):
+    process = subprocess.Popen(action, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process.wait()
+
+    result = []
+    for line in process.stdout:
+        result.append(line)
+
+    error_code = process.returncode
+    output = unicode("".join(result), encoding="utf-8")
+
+    return (error_code, output)
+
+def create_text(repo_name, cmd_code, text):
+    text = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    return "[%s] Deployement result: *%s*\n>>>```%s```" % (repo_name, cmd_code, text)
+
+def notify_slack(text):
+    data = {
+        'text': text
+    }
+    data = json.dumps(data)
+
+    r = requests.post(settings.SLACK_HOOK_URL, data=data)
+
+    return r.status_code == 200
 
 # Check if python version is less than 2.7.7
 if sys.version_info < (2, 7, 7):
