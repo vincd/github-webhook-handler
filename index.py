@@ -13,6 +13,7 @@ import hmac
 from hashlib import sha1
 from flask import Flask, request, abort
 import settings
+import threading
 
 """
 Conditionally import ProxyFix from werkzeug if the USE_PROXYFIX environment
@@ -100,12 +101,28 @@ def index():
 
         if repo.get('action', None):
             for action in repo['action']:
-                error_code, output = execute_action(action)
-                text = create_text(repo_name, error_code, output)
-                if not notify_slack(text):
-                    return 'Slack error'
+                start_thread_action(action, repo_name)
+                # error_code, output = execute_action(action)
+                # text = create_text(repo_name, error_code, output)
+                # if not notify_slack(text):
+                #     return 'Slack error'
 
         return 'OK'
+
+@app.route("/github_hooks_test", methods=['GET', 'POST'])
+def index_test():
+    start_thread_action(['ls'], "testrepo")
+
+    return 'ok'
+
+def start_thread_action(action, repo_name):
+    t = threading.Thread(target=execute_action_worker, args=[action, repo_name])
+    t.start()
+
+def execute_action_worker(action, repo_name):
+    error_code, output = execute_action(action)
+    text = create_text(repo_name, error_code, output)
+    notify_slack(text)
 
 def execute_action(action):
     process = subprocess.Popen(action, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -165,4 +182,4 @@ if __name__ == "__main__":
         port_number = 80
     if os.environ.get('USE_PROXYFIX', None) == 'true':
         app.wsgi_app = ProxyFix(app.wsgi_app)
-    app.run(host='0.0.0.0', port=port_number)
+    app.run(host='0.0.0.0', port=port_number, debug=True)
