@@ -182,4 +182,4 @@ if __name__ == "__main__":
         port_number = 80
     if os.environ.get('USE_PROXYFIX', None) == 'true':
         app.wsgi_app = ProxyFix(app.wsgi_app)
-    app.run(host='0.0.0.0', port=port_number, debug=True)
+    app.run(host='127.0.0.1', port=port_number, debug=True)
