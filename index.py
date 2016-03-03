@@ -27,8 +27,8 @@ module.
     import flask-github-webhook-handler.index as handler
 
 """
-if os.environ.get('USE_PROXYFIX', None) == 'true':
-    from werkzeug.contrib.fixers import ProxyFix
+
+from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
 app.debug = os.environ.get('DEBUG') == 'true'
@@ -180,6 +180,7 @@ if __name__ == "__main__":
         port_number = int(sys.argv[1])
     except:
         port_number = 80
-    if os.environ.get('USE_PROXYFIX', None) == 'true':
-        app.wsgi_app = ProxyFix(app.wsgi_app)
-    app.run(host='127.0.0.1', port=port_number, debug=True)
+
+    host='127.0.0.1'
+    app.wsgi_app = ProxyFix(app.wsgi_app)
+    app.run(host=host, port=port_number)
