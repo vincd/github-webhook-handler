@@ -122,7 +122,9 @@ def start_thread_action(action, repo_name):
 def execute_action_worker(action, repo_name):
     error_code, output = execute_action(action)
     text = create_text(repo_name, error_code, output)
-    notify_slack(text)
+
+    if settings.SLACK_ENABLE:
+        notify_slack(text)
 
 def execute_action(action):
     process = subprocess.Popen(action, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -176,11 +178,8 @@ else:
     compare_digest = hmac.compare_digest
 
 if __name__ == "__main__":
-    try:
-        port_number = int(sys.argv[1])
-    except:
-        port_number = 80
+    host = settings.HOST
+    port_number = settings.PORT
 
-    host='127.0.0.1'
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.run(host=host, port=port_number)
