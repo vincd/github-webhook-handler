@@ -15,20 +15,6 @@ from flask import Flask, request, abort
 import settings
 import threading
 
-"""
-Conditionally import ProxyFix from werkzeug if the USE_PROXYFIX environment
-variable is set to true.  If you intend to import this as a module in your own
-code, use os.environ to set the environment variable before importing this as a
-module.
-
-.. code:: python
-
-    os.environ['USE_PROXYFIX'] = 'true'
-    import flask-github-webhook-handler.index as handler
-
-"""
-
-from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
 app.debug = settings.DEBUG
@@ -41,7 +27,7 @@ REPOS_JSON_PATH = settings.FLASK_GITHUB_WEBHOOK_REPOS_JSON
 @app.route("/github_hooks", methods=['GET', 'POST'])
 def index():
     if request.method == 'GET':
-        return 'OK'
+        return 'ok'
     elif request.method == 'POST':
         # Store the IP address of the requester
         request_ip = ipaddress.ip_address(u'{0}'.format(request.remote_addr))
@@ -181,5 +167,4 @@ if __name__ == "__main__":
     host = settings.HOST
     port_number = settings.PORT
 
-    app.wsgi_app = ProxyFix(app.wsgi_app)
     app.run(host=host, port=port_number)
