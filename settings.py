@@ -14,3 +14,8 @@ PORT = 9081
 
 # eneble slack support
 SLACK_ENABLE = False
+
+try:
+    from local_settings import *
+except:
+    pass

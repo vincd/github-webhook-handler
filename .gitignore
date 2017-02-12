@@ -72,5 +72,5 @@ pip-selfcheck.json
 #sqlite database
 *.sqlite3
 
-# settings.py
+local_settings.py
 repos.json
