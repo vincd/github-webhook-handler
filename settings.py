@@ -1,4 +1,7 @@
 
+# debug
+DEBUG = False
+
 # repos file
 FLASK_GITHUB_WEBHOOK_REPOS_JSON = {
 }

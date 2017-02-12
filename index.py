@@ -31,7 +31,7 @@ module.
 from werkzeug.contrib.fixers import ProxyFix
 
 app = Flask(__name__)
-app.debug = os.environ.get('DEBUG') == 'true'
+app.debug = settings.DEBUG
 
 # The repos.json file should be readable by the user running the Flask app,
 # and the absolute path should be given by this environment variable.
